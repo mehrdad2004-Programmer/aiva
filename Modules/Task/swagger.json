@@ -1,0 +1,472 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Task Module API",
+    "description": "API documentation for the Task module.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost",
+      "description": "Local server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Tasks"
+    },
+    {
+      "name": "Task Types"
+    }
+  ],
+  "paths": {
+    "/api/tasks/v1": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get tasks",
+        "operationId": "getTasks",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "Partial title match.",
+            "schema": { "type": "string", "nullable": true }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "nullable": true }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "nullable": true }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaskListResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Create a task and reminder",
+        "operationId": "createTask",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTaskRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Created" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/tasks/v1/queue": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get queued tasks",
+        "description": "Returns tasks with status 1 that have a non-deleted reminder.",
+        "operationId": "queueTasks",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued tasks found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaskListResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/tasks/v1/{taskId}": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Update a task and its reminder",
+        "operationId": "updateTask",
+        "parameters": [
+          { "$ref": "#/components/parameters/TaskId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateTaskRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Updated" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Tasks"],
+        "summary": "Delete a task and its reminders",
+        "description": "Sets the task status to 3 and soft-deletes the task and its reminders.",
+        "operationId": "deleteTask",
+        "parameters": [
+          { "$ref": "#/components/parameters/TaskId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deleted" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/tasks/v1/task-types": {
+      "get": {
+        "tags": ["Task Types"],
+        "summary": "Get task types",
+        "operationId": "getTaskTypes",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task types found.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaskTypeListResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Task Types"],
+        "summary": "Create a task type",
+        "operationId": "createTaskType",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateTaskTypeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task type created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaskTypeResponse" }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/tasks/v1/task-types/{taskTypeId}": {
+      "patch": {
+        "tags": ["Task Types"],
+        "summary": "Update a task type",
+        "operationId": "updateTaskType",
+        "parameters": [
+          { "$ref": "#/components/parameters/TaskTypeId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateTaskTypeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task type updated.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TaskTypeResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Task Types"],
+        "summary": "Delete a task type",
+        "operationId": "deleteTaskType",
+        "parameters": [
+          { "$ref": "#/components/parameters/TaskTypeId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deleted" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "default": 1 }
+      },
+      "TaskId": {
+        "name": "taskId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "minimum": 1 }
+      },
+      "TaskTypeId": {
+        "name": "taskTypeId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "schemas": {
+      "Reminder": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "chat_id": { "type": "string", "example": "123456" },
+          "task_id": { "type": "integer", "example": 1 },
+          "remind_at": { "type": "string", "format": "date", "example": "2026-09-30" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time", "nullable": true },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "title": { "type": "string", "example": "Send weekly report" },
+          "chat_id": { "type": "string", "example": "123456" },
+          "type": { "type": "string", "example": "work" },
+          "comments": { "type": "string", "example": "Attach the latest metrics" },
+          "status": { "type": "string", "example": "1" },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time", "nullable": true },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true },
+          "reminders": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Reminder" }
+          }
+        }
+      },
+      "TaskType": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "title": { "type": "string", "example": "Work" },
+          "chat_id": { "type": "string", "example": "123456" },
+          "created_at": { "type": "string", "format": "date-time", "nullable": true },
+          "updated_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "CreateTaskRequest": {
+        "type": "object",
+        "required": ["title", "chat_id", "type", "comments", "remind_at"],
+        "properties": {
+          "title": { "type": "string" },
+          "chat_id": { "type": "string" },
+          "type": { "type": "string" },
+          "comments": { "type": "string" },
+          "remind_at": { "type": "string", "format": "date" }
+        }
+      },
+      "UpdateTaskRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "chat_id": { "type": "string" },
+          "type": { "type": "string" },
+          "comments": { "type": "string" },
+          "status": { "type": "string" },
+          "remind_at": { "type": "string", "format": "date" }
+        },
+        "minProperties": 1
+      },
+      "CreateTaskTypeRequest": {
+        "type": "object",
+        "required": ["title", "chat_id"],
+        "properties": {
+          "title": { "type": "string" },
+          "chat_id": { "type": "string" }
+        }
+      },
+      "UpdateTaskTypeRequest": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "chat_id": { "type": "string" }
+        },
+        "minProperties": 1
+      },
+      "TaskPagination": {
+        "type": "object",
+        "properties": {
+          "current_page": { "type": "integer" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Task" }
+          },
+          "first_page_url": { "type": "string", "nullable": true },
+          "from": { "type": "integer", "nullable": true },
+          "last_page": { "type": "integer" },
+          "last_page_url": { "type": "string", "nullable": true },
+          "next_page_url": { "type": "string", "nullable": true },
+          "path": { "type": "string" },
+          "per_page": { "type": "integer", "example": 10 },
+          "prev_page_url": { "type": "string", "nullable": true },
+          "to": { "type": "integer", "nullable": true },
+          "total": { "type": "integer" }
+        }
+      },
+      "TaskTypePagination": {
+        "type": "object",
+        "properties": {
+          "current_page": { "type": "integer" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TaskType" }
+          },
+          "last_page": { "type": "integer" },
+          "per_page": { "type": "integer", "example": 10 },
+          "total": { "type": "integer" }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "required": ["data", "statuscode"],
+        "properties": {
+          "msg": { "type": "string", "example": "found" },
+          "data": { "$ref": "#/components/schemas/TaskPagination" },
+          "statuscode": { "type": "integer", "example": 200 }
+        }
+      },
+      "TaskTypeListResponse": {
+        "type": "object",
+        "required": ["msg", "data", "statuscode"],
+        "properties": {
+          "msg": { "type": "string", "example": "task types found" },
+          "data": { "$ref": "#/components/schemas/TaskTypePagination" },
+          "statuscode": { "type": "integer", "example": 200 }
+        }
+      },
+      "TaskTypeResponse": {
+        "type": "object",
+        "required": ["msg", "data", "statuscode"],
+        "properties": {
+          "msg": { "type": "string" },
+          "data": { "$ref": "#/components/schemas/TaskType" },
+          "statuscode": { "type": "integer" }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "required": ["msg", "statuscode"],
+        "properties": {
+          "msg": { "type": "string" },
+          "statuscode": { "type": "integer" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Created": {
+        "description": "Resource created.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/MessageResponse" }
+          }
+        }
+      },
+      "Updated": {
+        "description": "Resource updated.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/MessageResponse" }
+          }
+        }
+      },
+      "Deleted": {
+        "description": "Resource deleted.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/MessageResponse" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/MessageResponse" }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation failed.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ValidationError" }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/MessageResponse" }
+          }
+        }
+      }
+    }
+  }
+}

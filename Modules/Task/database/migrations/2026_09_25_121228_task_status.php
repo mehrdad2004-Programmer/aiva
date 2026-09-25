@@ -9,11 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::create("task_status", function(Blueprint $table){
+    public function up(): void
+    {
+        Schema::create('task_status', function (Blueprint $table) {
             $table->id();
-            $table->string("title");
-            $table->date("deleted_at");
+            $table->string('title');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -21,7 +22,8 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
-        Schema::dropIfExists("task_status");
+    public function down(): void
+    {
+        Schema::dropIfExists('task_status');
     }
 };

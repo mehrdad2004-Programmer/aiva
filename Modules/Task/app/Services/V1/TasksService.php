@@ -74,6 +74,8 @@ class TasksService
                     'reminders',
                     fn ($query) => $query->whereNull('deleted_at')
                 )
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->paginate(10);
 
             if ($tasks->isEmpty()) {
@@ -158,6 +160,8 @@ class TasksService
                     isset($filters['status']) && $filters['status'] !== '',
                     fn ($query) => $query->where('tasks.status', $filters['status'])
                 )
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->paginate(10);
 
             if ($tasks->isEmpty()) {
@@ -187,13 +191,17 @@ class TasksService
 
             DB::beginTransaction();
 
-            TasksModel::create($task_array);
+            $task_array['status'] = '1';
+            $task = TasksModel::create($task_array);
+
+            $reminder_array['task_id'] = $task->id;
             ReminderModel::create($reminder_array);
 
             DB::commit();
 
             return [
                 'msg' => 'inserted',
+                'data' => $task->load('reminders'),
                 'statuscode' => 201,
             ];
 

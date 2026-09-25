@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('reminder', function (Blueprint $table) {
             $table->id();
-            $table->string('chat_id');
-            $table->string('task_id');
-            $table->date('remind_at');
-            $table->date('deleted_at');
+            $table->string('chat_id')->index();
+            $table->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();
+            $table->dateTime('remind_at');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('remider');
+        Schema::dropIfExists('reminder');
     }
 };

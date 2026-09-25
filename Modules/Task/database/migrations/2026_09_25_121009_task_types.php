@@ -9,11 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::create("task_types", function(Blueprint $table){
+    public function up(): void
+    {
+        Schema::create('task_types', function (Blueprint $table) {
             $table->id();
-            $table->string("title");
-            $table->string("chat_id");
+            $table->string('title');
+            $table->string('chat_id')->index();
             $table->timestamps();
         });
     }
@@ -21,7 +22,8 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
-        Schema::dropIfExists("task_types");
+    public function down(): void
+    {
+        Schema::dropIfExists('task_types');
     }
 };

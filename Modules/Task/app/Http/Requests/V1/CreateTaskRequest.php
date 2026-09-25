@@ -18,8 +18,6 @@ class CreateTaskRequest extends FormRequest
             'chat_id' => ['required', 'string'],
             'type' => ['required', 'string'],
             'comments' => ['required', 'string'],
-            'status' => ['required', 'string'],
-            'task_id' => ['required', 'integer'],
             'remind_at' => ['required', 'date'],
         ];
     }

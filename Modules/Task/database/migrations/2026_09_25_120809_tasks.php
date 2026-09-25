@@ -9,15 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::create("tasks", function(Blueprint $table){
+    public function up(): void
+    {
+        Schema::create('tasks', function (Blueprint $table) {
             $table->id();
-            $table->string("title");
-            $table->string("chat_id");
-            $table->string("type");
-            $table->string("comments");
-            $table->status();
-            $table->date("deleted_at");
+            $table->string('title');
+            $table->string('chat_id')->index();
+            $table->string('type')->index();
+            $table->text('comments');
+            $table->string('status')->default('1')->index();
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -25,7 +26,8 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
-        Schema::dropIfExists("tasks");
+    public function down(): void
+    {
+        Schema::dropIfExists('tasks');
     }
 };
