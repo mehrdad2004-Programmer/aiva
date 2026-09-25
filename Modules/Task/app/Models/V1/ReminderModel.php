@@ -17,7 +17,6 @@ class ReminderModel extends Model
         'chat_id',
         'task_id',
         'remind_at',
-        'sent_at',
     ];
 
     protected function casts(): array
@@ -25,7 +24,6 @@ class ReminderModel extends Model
         return [
             'task_id' => 'integer',
             'remind_at' => 'date',
-            'sent_at' => 'date',
             'deleted_at' => 'datetime',
         ];
     }

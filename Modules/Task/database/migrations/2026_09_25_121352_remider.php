@@ -9,14 +9,14 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::create("reminder", function(Blueprint $table){
+    public function up(): void
+    {
+        Schema::create('reminder', function (Blueprint $table) {
             $table->id();
-            $table->string("chat_id");
-            $table->string("task_id");
-            $table->date("remind_at");
-            $table->date("sent_at");
-            $table->date("deleted_at");
+            $table->string('chat_id');
+            $table->string('task_id');
+            $table->date('remind_at');
+            $table->date('deleted_at');
             $table->timestamps();
         });
     }
@@ -24,7 +24,8 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
-        Schema::dropIfExists("remider");
+    public function down(): void
+    {
+        Schema::dropIfExists('remider');
     }
 };
