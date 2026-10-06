@@ -87,13 +87,10 @@ class BaleController extends Controller
     {
         $chatId = (string) data_get($message, 'from.id');
 
-        UsersModel::query()->updateOrCreate(
-            ['chat_id' => $chatId],
-            [
-                'fullname' => $this->senderName($message),
-                'deleted_at' => null,
-            ]
-        );
+        $user = UsersModel::withTrashed()->firstOrNew(['chat_id' => $chatId]);
+        $user->fullname = $this->senderName($message);
+        $user->deleted_at = null;
+        $user->save();
 
         return $this->sendText(
             $chatId,

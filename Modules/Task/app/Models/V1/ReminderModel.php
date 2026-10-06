@@ -17,13 +17,15 @@ class ReminderModel extends Model
         'chat_id',
         'task_id',
         'remind_at',
+        'sent_at',
     ];
 
     protected function casts(): array
     {
         return [
             'task_id' => 'integer',
-            'remind_at' => 'date',
+            'remind_at' => 'datetime',
+            'sent_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
     }

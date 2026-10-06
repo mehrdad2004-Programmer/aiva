@@ -9,11 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-        Schema::create("users", function(Blueprint $table){
-            $table->string("chat_id")->primary();
-            $table->string("fullname");
-            $table->timestamp("deleted_at");
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->string('chat_id')->primary();
+            $table->string('fullname');
+            $table->timestamp('deleted_at')->nullable()->index();
             $table->timestamps();
         });
     }
@@ -21,7 +22,8 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void {
-        Schema::dropIfExists("users");
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
     }
 };
