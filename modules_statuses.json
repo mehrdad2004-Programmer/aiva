@@ -1,4 +1,5 @@
 {
     "Auth": true,
-    "Task": true
+    "Task": true,
+    "Bot": true
 }

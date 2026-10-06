@@ -1,0 +1,11 @@
+{
+    "name": "Bot",
+    "alias": "bot",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Bot\\Providers\\BotServiceProvider"
+    ],
+    "files": []
+}
