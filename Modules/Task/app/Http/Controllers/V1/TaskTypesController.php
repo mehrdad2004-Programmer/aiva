@@ -15,7 +15,9 @@ class TaskTypesController extends Controller
     public function getTaskTypes(GetTaskTypesRequest $request): JsonResponse
     {
         try {
-            $result = TaskTypesService::getTaskTypes();
+            $result = TaskTypesService::getTaskTypes(
+                (string) $request->attributes->get('bale_user_id')
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {
@@ -26,7 +28,10 @@ class TaskTypesController extends Controller
     public function createTaskType(CreateTaskTypeRequest $request): JsonResponse
     {
         try {
-            $result = TaskTypesService::createTaskType($request->validated());
+            $result = TaskTypesService::createTaskType(
+                $request->validated(),
+                (string) $request->attributes->get('bale_user_id')
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {
@@ -39,7 +44,8 @@ class TaskTypesController extends Controller
         try {
             $result = TaskTypesService::updateTaskType(
                 $taskTypeId,
-                $request->validated()
+                $request->validated(),
+                (string) $request->attributes->get('bale_user_id')
             );
 
             return response()->json($result, $result['statuscode']);
@@ -51,7 +57,10 @@ class TaskTypesController extends Controller
     public function deleteTaskType(DeleteTaskTypeRequest $request, int $taskTypeId): JsonResponse
     {
         try {
-            $result = TaskTypesService::deleteTaskType($taskTypeId);
+            $result = TaskTypesService::deleteTaskType(
+                $taskTypeId,
+                (string) $request->attributes->get('bale_user_id')
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {

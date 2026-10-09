@@ -6,10 +6,10 @@ use Modules\Task\Models\V1\TaskTypesModel;
 
 class TaskTypesService
 {
-    public static function getTaskTypes(): array
+    public static function getTaskTypes(string $chatId): array
     {
         try {
-            $taskTypes = TaskTypesModel::query()->paginate(10);
+            $taskTypes = TaskTypesModel::query()->where('chat_id', $chatId)->paginate(10);
 
             if ($taskTypes->isEmpty()) {
                 return [
@@ -32,9 +32,10 @@ class TaskTypesService
         }
     }
 
-    public static function createTaskType(array $data): array
+    public static function createTaskType(array $data, string $chatId): array
     {
         try {
+            $data['chat_id'] = $chatId;
             $taskType = TaskTypesModel::query()->create($data);
 
             return [
@@ -50,10 +51,10 @@ class TaskTypesService
         }
     }
 
-    public static function updateTaskType(int $taskTypeId, array $data): array
+    public static function updateTaskType(int $taskTypeId, array $data, string $chatId): array
     {
         try {
-            $taskType = TaskTypesModel::query()->find($taskTypeId);
+            $taskType = TaskTypesModel::query()->where('chat_id', $chatId)->find($taskTypeId);
 
             if (! $taskType) {
                 return [
@@ -77,10 +78,10 @@ class TaskTypesService
         }
     }
 
-    public static function deleteTaskType(int $taskTypeId): array
+    public static function deleteTaskType(int $taskTypeId, string $chatId): array
     {
         try {
-            $taskType = TaskTypesModel::query()->find($taskTypeId);
+            $taskType = TaskTypesModel::query()->where('chat_id', $chatId)->find($taskTypeId);
 
             if (! $taskType) {
                 return [

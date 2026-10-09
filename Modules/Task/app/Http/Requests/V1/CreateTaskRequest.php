@@ -15,7 +15,6 @@ class CreateTaskRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string'],
-            'chat_id' => ['required', 'string'],
             'type' => ['required', 'string'],
             'comments' => ['required', 'string'],
             'remind_at' => ['required', 'date'],

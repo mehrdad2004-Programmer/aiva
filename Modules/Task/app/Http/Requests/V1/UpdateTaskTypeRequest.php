@@ -15,7 +15,6 @@ class UpdateTaskTypeRequest extends FormRequest
     {
         return [
             'title' => ['sometimes', 'string'],
-            'chat_id' => ['sometimes', 'string'],
         ];
     }
 }

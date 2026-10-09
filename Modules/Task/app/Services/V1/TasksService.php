@@ -9,12 +9,12 @@ use Modules\Task\Models\V1\TasksModel;
 
 class TasksService
 {
-    public static function updateTask(int $taskId, array $data): array
+    public static function updateTask(int $taskId, array $data, string $chatId): array
     {
         try {
             DB::beginTransaction();
 
-            $task = TasksModel::query()->find($taskId);
+            $task = TasksModel::query()->where('chat_id', $chatId)->find($taskId);
 
             if (! $task) {
                 DB::rollBack();
@@ -38,14 +38,12 @@ class TasksService
 
             $task->update(Arr::only($data, [
                 'title',
-                'chat_id',
                 'type',
                 'comments',
                 'status',
             ]));
 
             $reminder->update(Arr::only($data, [
-                'chat_id',
                 'remind_at',
             ]));
 
@@ -65,14 +63,15 @@ class TasksService
         }
     }
 
-    public static function queueTasks(): array
+    public static function queueTasks(string $chatId): array
     {
         try {
             $tasks = TasksModel::query()
                 ->where('status', '1')
+                ->where('chat_id', $chatId)
                 ->withWhereHas(
                     'reminders',
-                    fn ($query) => $query->whereNull('deleted_at')
+                    fn ($query) => $query->where('chat_id', $chatId)->whereNull('deleted_at')
                 )
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
@@ -97,12 +96,12 @@ class TasksService
         }
     }
 
-    public static function deleteTask(int $taskId): array
+    public static function deleteTask(int $taskId, string $chatId): array
     {
         try {
             DB::beginTransaction();
 
-            $task = TasksModel::query()->find($taskId);
+            $task = TasksModel::query()->where('chat_id', $chatId)->find($taskId);
 
             if (! $task) {
                 DB::rollBack();
@@ -139,10 +138,11 @@ class TasksService
         }
     }
 
-    public static function getTasks(array $filters = []): array
+    public static function getTasks(string $chatId, array $filters = []): array
     {
         try {
             $tasks = TasksModel::query()
+                ->where('chat_id', $chatId)
                 ->with('reminders')
                 ->when(
                     isset($filters['title']) && $filters['title'] !== '',
@@ -185,16 +185,18 @@ class TasksService
         }
     }
 
-    public static function createTask(array $task_array, array $reminder_array): array
+    public static function createTask(array $task_array, array $reminder_array, string $chatId): array
     {
         try {
 
             DB::beginTransaction();
 
+            $task_array['chat_id'] = $chatId;
             $task_array['status'] = '1';
             $task = TasksModel::create($task_array);
 
             $reminder_array['task_id'] = $task->id;
+            $reminder_array['chat_id'] = $chatId;
             ReminderModel::create($reminder_array);
 
             DB::commit();

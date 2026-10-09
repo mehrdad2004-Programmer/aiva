@@ -18,7 +18,8 @@ class TasksController extends Controller
         try {
             $result = TasksService::updateTask(
                 $taskId,
-                $request->validated()
+                $request->validated(),
+                (string) $request->attributes->get('bale_user_id')
             );
 
             return response()->json($result, $result['statuscode']);
@@ -30,7 +31,10 @@ class TasksController extends Controller
     public function getTasks(GetTasksRequest $request): JsonResponse
     {
         try {
-            $result = TasksService::getTasks($request->validated());
+            $result = TasksService::getTasks(
+                (string) $request->attributes->get('bale_user_id'),
+                $request->validated()
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {
@@ -45,7 +49,8 @@ class TasksController extends Controller
 
             $result = TasksService::createTask(
                 $data,
-                $data
+                $data,
+                (string) $request->attributes->get('bale_user_id')
             );
 
             return response()->json($result, $result['statuscode']);
@@ -57,7 +62,10 @@ class TasksController extends Controller
     public function deleteTask(DeleteTaskRequest $request, int $taskId): JsonResponse
     {
         try {
-            $result = TasksService::deleteTask($taskId);
+            $result = TasksService::deleteTask(
+                $taskId,
+                (string) $request->attributes->get('bale_user_id')
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {
@@ -68,7 +76,9 @@ class TasksController extends Controller
     public function queueTasks(QueueTasksRequest $request): JsonResponse
     {
         try {
-            $result = TasksService::queueTasks();
+            $result = TasksService::queueTasks(
+                (string) $request->attributes->get('bale_user_id')
+            );
 
             return response()->json($result, $result['statuscode']);
         } catch (\Throwable $e) {

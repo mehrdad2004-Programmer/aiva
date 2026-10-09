@@ -3,8 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Task\Http\Controllers\V1\TasksController;
 use Modules\Task\Http\Controllers\V1\TaskTypesController;
+use Modules\Task\Http\Middleware\ValidateBaleMiniApp;
 
-Route::prefix('tasks')->group(function () {
+Route::middleware(ValidateBaleMiniApp::class)->prefix('tasks')->group(function () {
     Route::prefix('v1')->group(function () {
         Route::get('/task-types', [TaskTypesController::class, 'getTaskTypes']);
         Route::post('/task-types', [TaskTypesController::class, 'createTaskType']);
