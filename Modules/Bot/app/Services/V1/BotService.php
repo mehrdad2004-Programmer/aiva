@@ -16,13 +16,45 @@ class BotService
         $this->token = (string) env('BALE_BOT_TOKEN');
     }
 
-    public function sendMessage(string $chatId, string $message): array
+    public function sendMessage(string $chatId, string $message, ?array $replyMarkup = null): array
+    {
+        try {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => $message,
+            ];
+
+            if ($replyMarkup !== null) {
+                $data['reply_markup'] = $replyMarkup;
+            }
+
+            $response = Http::post(
+                $this->endpoint('sendMessage'),
+                $data
+            );
+
+            return [
+                'msg' => $response->json(),
+                'statuscode' => $response->status(),
+            ];
+        } catch (\Exception $exception) {
+            return [
+                'msg' => [
+                    'ok' => false,
+                    'message' => $exception->getMessage(),
+                ],
+                'statuscode' => 500,
+            ];
+        }
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId, string $message): array
     {
         try {
             $response = Http::post(
-                $this->endpoint('sendMessage'),
+                $this->endpoint('answerCallbackQuery'),
                 [
-                    'chat_id' => $chatId,
+                    'callback_query_id' => $callbackQueryId,
                     'text' => $message,
                 ]
             );

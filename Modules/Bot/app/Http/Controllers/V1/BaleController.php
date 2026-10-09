@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Modules\Auth\Models\V1\UsersModel;
 use Modules\Bot\Services\V1\BotService;
 use Modules\Task\Models\V1\ReminderModel;
+use Modules\Task\Models\V1\TasksModel;
 
 class BaleController extends Controller
 {
@@ -16,6 +17,10 @@ class BaleController extends Controller
 
     public function webhook(Request $request): JsonResponse
     {
+        if ($request->has('callback_query')) {
+            return $this->callbackQuery($request->input('callback_query'));
+        }
+
         $message = $request->input('message');
         $senderId = data_get($message, 'from.id');
         $command = $this->commandFrom(
@@ -61,7 +66,8 @@ class BaleController extends Controller
                     foreach ($reminders as $reminder) {
                         $result = $this->botService->sendMessage(
                             (string) $reminder->chat_id,
-                            $this->taskMessage($reminder->task)
+                            $this->taskMessage($reminder->task),
+                            $this->doneButton($reminder->task->id)
                         );
 
                         if ($this->wasSentSuccessfully($result)) {
@@ -100,10 +106,82 @@ class BaleController extends Controller
 
     private function report(string $chatId): JsonResponse
     {
-        return $this->sendText(
-            $chatId,
-            'Your report request has been received.'
-        );
+        $tasks = TasksModel::query()
+            ->where('chat_id', $chatId)
+            ->whereHas('reminders', fn ($query) => $query
+                ->whereBetween('remind_at', [now()->startOfDay(), now()->endOfDay()]))
+            ->with(['reminders' => fn ($query) => $query
+                ->whereBetween('remind_at', [now()->startOfDay(), now()->endOfDay()])])
+            ->orderBy('id')
+            ->get();
+
+        if ($tasks->isEmpty()) {
+            return $this->sendText($chatId, 'برای امروز تسکی ثبت نشده است.');
+        }
+
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($tasks as $index => $task) {
+            $result = $this->botService->sendMessage(
+                $chatId,
+                $this->reportTaskMessage($task, $index + 1),
+                $task->status === '1' ? $this->doneButton($task->id) : null
+            );
+
+            if ($this->wasSentSuccessfully($result)) {
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        return response()->json([
+            'ok' => $failed === 0,
+            'sent' => $sent,
+            'failed' => $failed,
+        ]);
+    }
+
+    private function callbackQuery(array $callbackQuery): JsonResponse
+    {
+        $callbackQueryId = (string) data_get($callbackQuery, 'id');
+        $chatId = (string) data_get($callbackQuery, 'from.id');
+        $data = (string) data_get($callbackQuery, 'data');
+
+        if (! str_starts_with($data, 'task_done:')) {
+            return response()->json(['ok' => true]);
+        }
+
+        $taskId = substr($data, strlen('task_done:'));
+
+        if (! ctype_digit($taskId)) {
+            return response()->json(['ok' => true]);
+        }
+
+        $task = TasksModel::query()
+            ->where('chat_id', $chatId)
+            ->find((int) $taskId);
+
+        if (! $task) {
+            $result = $this->botService->answerCallbackQuery(
+                $callbackQueryId,
+                'این تسک پیدا نشد.'
+            );
+
+            return response()->json($result['msg'], $result['statuscode']);
+        }
+
+        if ($task->status === '2') {
+            $message = 'این تسک قبلاً انجام شده است. ✅';
+        } else {
+            $task->update(['status' => '2']);
+            $message = 'تسک با موفقیت انجام شد. ✅';
+        }
+
+        $result = $this->botService->answerCallbackQuery($callbackQueryId, $message);
+
+        return response()->json($result['msg'], $result['statuscode']);
     }
 
     private function commandFrom(mixed $text): ?string
@@ -142,6 +220,36 @@ class BaleController extends Controller
             'یادآوری: '.$task->title,
             $task->comments,
         ]));
+    }
+
+    private function reportTaskMessage(object $task, int $number): string
+    {
+        $reminder = $task->reminders->first();
+        $statuses = [
+            '1' => 'در صف',
+            '2' => 'انجام شده ✅',
+            '3' => 'حذف شده',
+        ];
+
+        return implode("\n", array_filter([
+            'تسک '.$number.': '.$task->title,
+            'نوع: '.$task->type,
+            'وضعیت: '.($statuses[$task->status] ?? $task->status),
+            $reminder ? 'زمان یادآوری: '.$reminder->remind_at->format('H:i') : null,
+            $task->comments,
+        ]));
+    }
+
+    private function doneButton(int $taskId): array
+    {
+        return [
+            'inline_keyboard' => [[
+                [
+                    'text' => '✅ انجام شد',
+                    'callback_data' => 'task_done:'.$taskId,
+                ],
+            ]],
+        ];
     }
 
     private function wasSentSuccessfully(array $result): bool

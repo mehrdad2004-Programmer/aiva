@@ -15,7 +15,7 @@ class ValidateBaleMiniApp
         $botToken = config('services.bale.bot_token');
 
         if (! $initData || ! $botToken) {
-            return $this->unauthorizedResponse();
+            return $this->forbiddenResponse();
         }
 
         parse_str($initData, $data);
@@ -24,7 +24,7 @@ class ValidateBaleMiniApp
         unset($data['hash']);
 
         if (! is_string($hash) || ! isset($data['auth_date'], $data['user'])) {
-            return $this->unauthorizedResponse();
+            return $this->forbiddenResponse();
         }
 
         ksort($data);
@@ -37,20 +37,20 @@ class ValidateBaleMiniApp
         $calculatedHash = hash_hmac('sha256', $dataCheckString, $secretKey);
 
         if (! hash_equals($calculatedHash, $hash)) {
-            return $this->unauthorizedResponse();
+            return $this->forbiddenResponse();
         }
 
         $authDate = filter_var($data['auth_date'], FILTER_VALIDATE_INT);
         $maxAge = (int) config('services.bale.mini_app_max_age', 3600);
 
         if ($authDate === false || $authDate > now()->timestamp + 30 || now()->timestamp - $authDate > $maxAge) {
-            return $this->unauthorizedResponse();
+            return $this->forbiddenResponse();
         }
 
         $user = json_decode($data['user'], true);
 
         if (! is_array($user) || ! isset($user['id'])) {
-            return $this->unauthorizedResponse();
+            return $this->forbiddenResponse();
         }
 
         $request->attributes->set('bale_user_id', (string) $user['id']);
@@ -58,11 +58,11 @@ class ValidateBaleMiniApp
         return $next($request);
     }
 
-    private function unauthorizedResponse(): JsonResponse
+    private function forbiddenResponse(): JsonResponse
     {
         return response()->json([
-            'msg' => 'invalid bale mini app data',
-            'statuscode' => 401,
-        ], 401);
+            'msg' => 'access is only allowed from Bale messenger',
+            'statuscode' => 403,
+        ], 403);
     }
 }
