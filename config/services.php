@@ -37,6 +37,7 @@ return [
 
     'bale' => [
         'bot_token' => env('BALE_BOT_TOKEN'),
+        'cron_token' => env('BALE_CRON_TOKEN'),
         'mini_app_max_age' => env('BALE_MINI_APP_MAX_AGE', 3600),
     ],
 

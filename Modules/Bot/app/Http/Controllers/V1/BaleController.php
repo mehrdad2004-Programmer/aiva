@@ -15,6 +15,17 @@ class BaleController extends Controller
 {
     public function __construct(private readonly BotService $botService) {}
 
+    public function setWebhook(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'url' => ['required', 'url', 'starts_with:https://'],
+        ]);
+
+        $result = $this->botService->setWebhook($validated['url']);
+
+        return response()->json($result['msg'], $result['statuscode']);
+    }
+
     public function webhook(Request $request): JsonResponse
     {
         if ($request->has('callback_query')) {
@@ -66,7 +77,7 @@ class BaleController extends Controller
                     foreach ($reminders as $reminder) {
                         $result = $this->botService->sendMessage(
                             (string) $reminder->chat_id,
-                            $this->taskMessage($reminder->task),
+                            $this->taskMessage($reminder->task, $reminder),
                             $this->doneButton($reminder->task->id)
                         );
 
@@ -108,15 +119,13 @@ class BaleController extends Controller
     {
         $tasks = TasksModel::query()
             ->where('chat_id', $chatId)
-            ->whereHas('reminders', fn ($query) => $query
-                ->whereBetween('remind_at', [now()->startOfDay(), now()->endOfDay()]))
-            ->with(['reminders' => fn ($query) => $query
-                ->whereBetween('remind_at', [now()->startOfDay(), now()->endOfDay()])])
+            ->where('status', '1')
+            ->with('reminders')
             ->orderBy('id')
             ->get();
 
         if ($tasks->isEmpty()) {
-            return $this->sendText($chatId, 'برای امروز تسکی ثبت نشده است.');
+            return $this->sendText($chatId, 'تسک انجام‌نشده‌ای ثبت نشده است.');
         }
 
         $sent = 0;
@@ -146,7 +155,8 @@ class BaleController extends Controller
     private function callbackQuery(array $callbackQuery): JsonResponse
     {
         $callbackQueryId = (string) data_get($callbackQuery, 'id');
-        $chatId = (string) data_get($callbackQuery, 'from.id');
+        $userId = (string) data_get($callbackQuery, 'from.id');
+        $chatId = (string) (data_get($callbackQuery, 'message.chat.id') ?? $userId);
         $data = (string) data_get($callbackQuery, 'data');
 
         if (! str_starts_with($data, 'task_done:')) {
@@ -160,7 +170,7 @@ class BaleController extends Controller
         }
 
         $task = TasksModel::query()
-            ->where('chat_id', $chatId)
+            ->where('chat_id', $userId)
             ->find((int) $taskId);
 
         if (! $task) {
@@ -179,9 +189,14 @@ class BaleController extends Controller
             $message = 'تسک با موفقیت انجام شد. ✅';
         }
 
-        $result = $this->botService->answerCallbackQuery($callbackQueryId, $message);
+        $answerResult = $this->botService->answerCallbackQuery($callbackQueryId, $message);
+        $messageResult = $this->botService->sendMessage($chatId, $message);
 
-        return response()->json($result['msg'], $result['statuscode']);
+        if (! $this->wasSentSuccessfully($answerResult)) {
+            return response()->json($answerResult['msg'], $answerResult['statuscode']);
+        }
+
+        return response()->json($messageResult['msg'], $messageResult['statuscode']);
     }
 
     private function commandFrom(mixed $text): ?string
@@ -214,30 +229,119 @@ class BaleController extends Controller
             : (string) (data_get($message, 'from.username') ?? data_get($message, 'from.id'));
     }
 
-    private function taskMessage(object $task): string
+    private function taskMessage(object $task, object $reminder): string
     {
-        return implode("\n", array_filter([
-            'یادآوری: '.$task->title,
-            $task->comments,
-        ]));
+        return implode("\n", [
+            '⏰ یادآوری تسک',
+            '━━━━━━━━━━━━',
+            '📝 عنوان: '.$task->title,
+            '🏷 نوع: '.($task->type ?: 'بدون نوع'),
+            '🗓 زمان: '.$this->formatReminderDateTime($reminder->remind_at),
+            '💬 توضیحات: '.($task->comments ?: 'بدون توضیحات'),
+            '',
+            'زمان انجام این تسک فرا رسیده است.',
+        ]);
     }
 
     private function reportTaskMessage(object $task, int $number): string
     {
         $reminder = $task->reminders->first();
         $statuses = [
-            '1' => 'در صف',
+            '1' => '🟡 در صف',
             '2' => 'انجام شده ✅',
             '3' => 'حذف شده',
         ];
 
-        return implode("\n", array_filter([
-            'تسک '.$number.': '.$task->title,
-            'نوع: '.$task->type,
-            'وضعیت: '.($statuses[$task->status] ?? $task->status),
-            $reminder ? 'زمان یادآوری: '.$reminder->remind_at->format('H:i') : null,
-            $task->comments,
-        ]));
+        return implode("\n", [
+            '📌 تسک '.$this->toPersianDigits((string) $number),
+            '━━━━━━━━━━━━',
+            '📝 عنوان: '.$task->title,
+            '🏷 نوع: '.$task->type,
+            '📊 وضعیت: '.($statuses[$task->status] ?? $task->status),
+            '🗓 زمان یادآوری: '.($reminder
+                ? $this->formatReminderDateTime($reminder->remind_at)
+                : 'بدون یادآوری'),
+            '💬 توضیحات: '.($task->comments ?: 'بدون توضیحات'),
+        ]);
+    }
+
+    private function formatReminderDateTime(object $dateTime): string
+    {
+        $localDateTime = $dateTime->copy()->timezone(
+            (string) config('app.display_timezone', 'Asia/Tehran')
+        );
+
+        [$year, $month, $day] = $this->gregorianToJalali(
+            (int) $localDateTime->format('Y'),
+            (int) $localDateTime->format('n'),
+            (int) $localDateTime->format('j')
+        );
+
+        return $this->toPersianDigits(sprintf(
+            '%04d/%02d/%02d - %s',
+            $year,
+            $month,
+            $day,
+            $localDateTime->format('H:i')
+        ));
+    }
+
+    private function gregorianToJalali(int $year, int $month, int $day): array
+    {
+        $monthDays = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+        if ($year > 1600) {
+            $jalaliYear = 979;
+            $year -= 1600;
+        } else {
+            $jalaliYear = 0;
+            $year -= 621;
+        }
+
+        $adjustedYear = $month > 2 ? $year + 1 : $year;
+        $days = (365 * $year)
+            + intdiv($adjustedYear + 3, 4)
+            - intdiv($adjustedYear + 99, 100)
+            + intdiv($adjustedYear + 399, 400)
+            - 80
+            + $day
+            + $monthDays[$month - 1];
+
+        $jalaliYear += 33 * intdiv($days, 12053);
+        $days %= 12053;
+        $jalaliYear += 4 * intdiv($days, 1461);
+        $days %= 1461;
+
+        if ($days > 365) {
+            $jalaliYear += intdiv($days - 1, 365);
+            $days = ($days - 1) % 365;
+        }
+
+        if ($days < 186) {
+            $jalaliMonth = 1 + intdiv($days, 31);
+            $jalaliDay = 1 + ($days % 31);
+        } else {
+            $jalaliMonth = 7 + intdiv($days - 186, 30);
+            $jalaliDay = 1 + (($days - 186) % 30);
+        }
+
+        return [$jalaliYear, $jalaliMonth, $jalaliDay];
+    }
+
+    private function toPersianDigits(string $value): string
+    {
+        return strtr($value, [
+            '0' => '۰',
+            '1' => '۱',
+            '2' => '۲',
+            '3' => '۳',
+            '4' => '۴',
+            '5' => '۵',
+            '6' => '۶',
+            '7' => '۷',
+            '8' => '۸',
+            '9' => '۹',
+        ]);
     }
 
     private function doneButton(int $taskId): array
@@ -261,7 +365,7 @@ class BaleController extends Controller
 
     private function hasValidCronToken(Request $request): bool
     {
-        $token = (string) env('BALE_CRON_TOKEN');
+        $token = (string) config('services.bale.cron_token');
 
         return $token !== ''
             && hash_equals($token, (string) $request->bearerToken());
