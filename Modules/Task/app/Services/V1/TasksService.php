@@ -43,9 +43,15 @@ class TasksService
                 'status',
             ]));
 
-            $reminder->update(Arr::only($data, [
+            $reminderData = Arr::only($data, [
                 'remind_at',
-            ]));
+            ]);
+
+            if (array_key_exists('remind_at', $reminderData)) {
+                $reminderData['sent_at'] = null;
+            }
+
+            $reminder->update($reminderData);
 
             DB::commit();
 
